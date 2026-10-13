@@ -1,185 +1,105 @@
 document.addEventListener("DOMContentLoaded", () => {
-  /* ==========================================================================
-     Project data
-     Each project points at a folder (relative to index.html) containing
-     images numbered 1.png, 2.png, ... up to `count`.
-     To add a new project later, just add another entry here.
-     ========================================================================== */
+  /* Add a project: folder name (next to index.html), image count (1.png … n.png). */
   const PROJECTS = [
-    {
-      id: "social-1",
-      title: "Social Media Campaign 1",
-      category: "social",
-      folder: "Social Media 1",
-      count: 9,
-    },
-    {
-      id: "social-2",
-      title: "Social Media Campaign 2",
-      category: "social",
-      folder: "Social Media 2",
-      count: 11,
-    },
-    {
-      id: "social-3",
-      title: "Social Media Campaign 3",
-      category: "social",
-      folder: "Social Media 3",
-      count: 7,
-    },
-    {
-      id: "branding-1",
-      title: "Branding Project 1",
-      category: "branding",
-      folder: "Branding 1",
-      count: 6,
-    },
+    { title: "Social Media Campaign 1", category: "social",   label: "Social Media", folder: "Social Media 1", count: 9 },
+    { title: "Branding Project 1",      category: "branding", label: "Branding",     folder: "Branding 1",     count: 6 },
+    { title: "Social Media Campaign 2", category: "social",   label: "Social Media", folder: "Social Media 2", count: 11 },
+    { title: "Social Media Campaign 3", category: "social",   label: "Social Media", folder: "Social Media 3", count: 7 },
   ];
+  const src = (p, n) => encodeURI(`${p.folder}/${n}.png`);
+  const $ = (id) => document.getElementById(id);
 
-  const EXT = "png";
-
-  function imagePath(folder, n) {
-    return encodeURI(`${folder}/${n}.${EXT}`);
-  }
-
-  /* ==========================================================================
-     Build the portfolio grid
-     ========================================================================== */
-  const grid = document.getElementById("portfolioGrid");
-  const emptyMsg = document.getElementById("portfolioEmpty");
-
-  PROJECTS.forEach((project) => {
-    const item = document.createElement("div");
-    item.className = "portfolio-item";
-    item.setAttribute("data-category", project.category);
-    item.setAttribute("data-project", project.id);
-
-    item.innerHTML = `
-      <button class="portfolio-item-btn" aria-label="View ${project.title} gallery">
-        <img
-          src="${imagePath(project.folder, 1)}"
-          alt="${project.title} cover"
-          class="portfolio-cover-img"
-          loading="lazy"
-        />
-        <div class="portfolio-item-overlay">
-          <span class="portfolio-item-title">${project.title}</span>
-          <span class="portfolio-item-count">${project.count} image${project.count === 1 ? "" : "s"}</span>
-        </div>
+  /* Gallery */
+  const list = $("projects");
+  PROJECTS.forEach((p, i) => {
+    const el = document.createElement("article");
+    el.className = `project ${i % 2 ? "right" : "left"} reveal`;
+    el.dataset.category = p.category;
+    el.innerHTML = `
+      <button class="project-media" aria-label="Open ${p.title} gallery">
+        <img src="${src(p, 1)}" alt="${p.title} cover" loading="${i ? "lazy" : "eager"}" />
       </button>
-    `;
-
-    item.querySelector(".portfolio-item-btn").addEventListener("click", () => {
-      openLightbox(project, 0);
-    });
-
-    grid.appendChild(item);
+      <div class="project-info">
+        <span class="project-cat">${String(i + 1).padStart(2, "0")} — ${p.label}</span>
+        <h3>${p.title}</h3>
+        <button class="link-btn">View project (${p.count}) &rarr;</button>
+      </div>`;
+    el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => openLb(p, 0)));
+    list.appendChild(el);
   });
 
-  /* ==========================================================================
-     Filtering
-     ========================================================================== */
-  const filterButtons = document.querySelectorAll(".filter-btn");
-  const portfolioItems = document.querySelectorAll(".portfolio-item");
+  /* Hero strip uses real covers */
+  $("heroStrip").innerHTML = PROJECTS.map((p) => `<img src="${src(p, 1)}" alt="" loading="lazy" />`).join("");
 
-  function applyFilter(filterValue) {
-    let visibleCount = 0;
-
-    portfolioItems.forEach((item) => {
-      const matches =
-        filterValue === "all" || item.getAttribute("data-category") === filterValue;
-
-      if (matches) {
-        visibleCount++;
-        item.classList.remove("hidden");
-        setTimeout(() => {
-          item.style.opacity = "1";
-          item.style.transform = "scale(1)";
-        }, 50);
-      } else {
-        item.style.opacity = "0";
-        item.style.transform = "scale(0.95)";
-        setTimeout(() => {
-          item.classList.add("hidden");
-        }, 400);
-      }
-    });
-
-    emptyMsg.hidden = visibleCount !== 0;
-  }
-
-  filterButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      filterButtons.forEach((btn) => btn.classList.remove("active"));
-      button.classList.add("active");
-      applyFilter(button.getAttribute("data-filter"));
+  /* Filters */
+  const items = [...document.querySelectorAll(".project")];
+  document.querySelectorAll(".filter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const f = btn.dataset.filter;
+      let shown = 0;
+      items.forEach((it) => {
+        const ok = f === "all" || it.dataset.category === f;
+        if (ok) { shown++; it.hidden = false; requestAnimationFrame(() => it.classList.add("in")); }
+        else { it.classList.remove("in"); setTimeout(() => { it.hidden = true; }, 300); }
+      });
+      $("empty").hidden = shown !== 0;
     });
   });
 
-  /* ==========================================================================
-     Lightbox gallery
-     ========================================================================== */
-  const lightbox = document.getElementById("lightbox");
-  const lightboxImage = document.getElementById("lightboxImage");
-  const lightboxTitle = document.getElementById("lightboxTitle");
-  const lightboxCounter = document.getElementById("lightboxCounter");
-  const lightboxClose = document.getElementById("lightboxClose");
-  const lightboxPrev = document.getElementById("lightboxPrev");
-  const lightboxNext = document.getElementById("lightboxNext");
-
-  let activeProject = null;
-  let activeIndex = 0;
-
-  function renderLightboxImage() {
-    if (!activeProject) return;
-    const imgNumber = activeIndex + 1;
-    lightboxImage.src = imagePath(activeProject.folder, imgNumber);
-    lightboxImage.alt = `${activeProject.title} — image ${imgNumber}`;
-    lightboxTitle.textContent = activeProject.title;
-    lightboxCounter.textContent = `${imgNumber} / ${activeProject.count}`;
+  /* Lightbox */
+  const lb = $("lightbox");
+  let cur = null, idx = 0, opener = null;
+  const render = () => {
+    $("lbImg").src = src(cur, idx + 1);
+    $("lbImg").alt = `${cur.title} — image ${idx + 1}`;
+    $("lbTitle").textContent = cur.title;
+    $("lbCount").textContent = `${idx + 1} / ${cur.count}`;
+  };
+  function openLb(p, i) {
+    opener = document.activeElement; cur = p; idx = i; render();
+    lb.classList.add("open"); lb.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden"; $("lbClose").focus();
   }
-
-  function openLightbox(project, startIndex) {
-    activeProject = project;
-    activeIndex = startIndex;
-    renderLightboxImage();
-    lightbox.classList.add("open");
-    lightbox.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+  function closeLb() {
+    lb.classList.remove("open"); lb.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = ""; cur = null; if (opener) opener.focus();
   }
-
-  function closeLightbox() {
-    lightbox.classList.remove("open");
-    lightbox.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
-    activeProject = null;
-  }
-
-  function showPrev() {
-    if (!activeProject) return;
-    activeIndex = (activeIndex - 1 + activeProject.count) % activeProject.count;
-    renderLightboxImage();
-  }
-
-  function showNext() {
-    if (!activeProject) return;
-    activeIndex = (activeIndex + 1) % activeProject.count;
-    renderLightboxImage();
-  }
-
-  lightboxClose.addEventListener("click", closeLightbox);
-  lightboxPrev.addEventListener("click", showPrev);
-  lightboxNext.addEventListener("click", showNext);
-
-  // Close when clicking the dark backdrop, not the image/content itself
-  lightbox.addEventListener("click", (e) => {
-    if (e.target === lightbox) closeLightbox();
-  });
-
+  const step = (d) => { if (cur) { idx = (idx + d + cur.count) % cur.count; render(); } };
+  $("lbClose").onclick = closeLb;
+  $("lbPrev").onclick = () => step(-1);
+  $("lbNext").onclick = () => step(1);
+  lb.addEventListener("click", (e) => { if (e.target === lb) closeLb(); });
   document.addEventListener("keydown", (e) => {
-    if (!lightbox.classList.contains("open")) return;
-    if (e.key === "Escape") closeLightbox();
-    if (e.key === "ArrowLeft") showPrev();
-    if (e.key === "ArrowRight") showNext();
+    if (!lb.classList.contains("open")) return;
+    if (e.key === "Escape") closeLb();
+    if (e.key === "ArrowLeft") step(-1);
+    if (e.key === "ArrowRight") step(1);
   });
+
+  /* Scroll reveals */
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }), { threshold: 0.12 });
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+
+  /* Mobile menu */
+  const links = $("navLinks"), mb = $("menuBtn");
+  const setMenu = (open) => { links.classList.toggle("open", open); mb.setAttribute("aria-expanded", open); };
+  mb.onclick = () => setMenu(!links.classList.contains("open"));
+  links.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => setMenu(false)));
+
+  /* Nav state + active link */
+  const navEl = $("nav");
+  const onScroll = () => navEl.classList.toggle("scrolled", scrollY > 20);
+  onScroll(); addEventListener("scroll", onScroll, { passive: true });
+  const secs = ["home", "work", "about", "services", "contact"].map($);
+  const spy = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) links.querySelectorAll("a").forEach((a) =>
+      a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+  }), { rootMargin: "-45% 0px -50% 0px" });
+  secs.forEach((s) => spy.observe(s));
+
+  $("year").textContent = new Date().getFullYear();
 });
