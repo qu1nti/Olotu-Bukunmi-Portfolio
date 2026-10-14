@@ -1,13 +1,27 @@
 document.addEventListener("DOMContentLoaded", () => {
-  /* Add a project: folder name (next to index.html), image count (1.png … n.png). */
+  /* Add a project: folder name (next to index.html), image count (1 … n).
+     Images can be .png, .jpg or .jpeg, named 1, 2, 3 … and may be mixed in one folder. */
   const PROJECTS = [
     { title: "The Called Out", category: "social",   label: "Social Media", folder: "Social Media 1", count: 8 },
     { title: "Winnie Co Brand Identity",      category: "branding", label: "Branding",     folder: "Branding 1",     count: 6 },
     { title: "The Seat of Kings", category: "social",   label: "Social Media", folder: "Social Media 2", count: 11 },
     { title: "SPE Oil & Gas Week", category: "social",   label: "Social Media", folder: "Social Media 3", count: 7 },
   ];
-const src = (p, n) => encodeURI(${p.folder}/${n}.png) + "?v=2";
+  const EXTS = ["png", "jpg", "jpeg", "PNG", "JPG", "JPEG"];
   const $ = (id) => document.getElementById(id);
+
+  /* Loads image n of project p, trying each file type until one is found. */
+  function setSrc(img, p, n) {
+    const order = p.ext ? [p.ext, ...EXTS.filter((e) => e !== p.ext)] : EXTS;
+    let i = 0;
+    const tryNext = () => {
+      if (i >= order.length) { img.onerror = null; return; }
+      img.src = encodeURI(`${p.folder}/${n}.${order[i++]}`);
+    };
+    img.onload = () => { p.ext = order[i - 1]; };
+    img.onerror = tryNext;
+    tryNext();
+  }
 
   /* Gallery */
   const list = $("projects");
@@ -17,19 +31,25 @@ const src = (p, n) => encodeURI(${p.folder}/${n}.png) + "?v=2";
     el.dataset.category = p.category;
     el.innerHTML = `
       <button class="project-media" aria-label="Open ${p.title} gallery">
-        <img src="${src(p, 1)}" alt="${p.title} cover" loading="${i ? "lazy" : "eager"}" />
+        <img alt="${p.title} cover" loading="${i ? "lazy" : "eager"}" />
       </button>
       <div class="project-info">
         <span class="project-cat">${String(i + 1).padStart(2, "0")} — ${p.label}</span>
         <h3>${p.title}</h3>
         <button class="link-btn">View project (${p.count}) &rarr;</button>
       </div>`;
+    setSrc(el.querySelector("img"), p, 1);
     el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => openLb(p, 0)));
     list.appendChild(el);
   });
 
   /* Hero strip uses real covers */
-  $("heroStrip").innerHTML = PROJECTS.map((p) => `<img src="${src(p, 1)}" alt="" loading="lazy" />`).join("");
+  PROJECTS.forEach((p) => {
+    const img = document.createElement("img");
+    img.alt = ""; img.loading = "lazy";
+    setSrc(img, p, 1);
+    $("heroStrip").appendChild(img);
+  });
 
   /* Filters */
   const items = [...document.querySelectorAll(".project")];
@@ -52,7 +72,7 @@ const src = (p, n) => encodeURI(${p.folder}/${n}.png) + "?v=2";
   const lb = $("lightbox");
   let cur = null, idx = 0, opener = null;
   const render = () => {
-    $("lbImg").src = src(cur, idx + 1);
+    setSrc($("lbImg"), cur, idx + 1);
     $("lbImg").alt = `${cur.title} — image ${idx + 1}`;
     $("lbTitle").textContent = cur.title;
     $("lbCount").textContent = `${idx + 1} / ${cur.count}`;
