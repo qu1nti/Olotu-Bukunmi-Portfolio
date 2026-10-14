@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   /* Add a project: folder name (next to index.html), image count (1.png … n.png). */
   const PROJECTS = [
-    { title: "The Called Out", category: "social",   label: "Social Media", folder: "Social Media 1", count: 9 },
+    { title: "The Called Out", category: "social",   label: "Social Media", folder: "Social Media 1", count: 8 },
     { title: "Winnie Co Brand Identity",      category: "branding", label: "Branding",     folder: "Branding 1",     count: 6 },
     { title: "The Seat of Kings", category: "social",   label: "Social Media", folder: "Social Media 2", count: 11 },
     { title: "SPE Oil & Gas Week", category: "social",   label: "Social Media", folder: "Social Media 3", count: 7 },
