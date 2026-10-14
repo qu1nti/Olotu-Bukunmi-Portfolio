@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { title: "The Seat of Kings", category: "social",   label: "Social Media", folder: "Social Media 2", count: 11 },
     { title: "SPE Oil & Gas Week", category: "social",   label: "Social Media", folder: "Social Media 3", count: 7 },
   ];
-  const src = (p, n) => encodeURI(`${p.folder}/${n}.png`);
+const src = (p, n) => encodeURI(${p.folder}/${n}.png) + "?v=2";
   const $ = (id) => document.getElementById(id);
 
   /* Gallery */
